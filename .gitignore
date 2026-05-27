@@ -1,0 +1,17 @@
+# Временные файлы и папки сборки
+Binaries/
+Build/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# Файлы проектов для конкретных ОС
+ActiveClassRedirects.ini
+AssetRegistryCache.bin
+*.sln
+*.xcworkspace
+*.xcodeproj
+
+# Папка плагинов (если они компилируются из исходников)
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
