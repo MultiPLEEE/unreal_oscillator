@@ -7,6 +7,8 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/TextRenderComponent.h"
 
+#include <cmath>
+
 // Sets default values
 AMySimulation::AMySimulation()
 {
