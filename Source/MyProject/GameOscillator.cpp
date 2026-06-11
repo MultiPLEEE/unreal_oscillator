@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "MySimulation.h"
+#include "GameOscillator.h"
 #include "MyGameInstance.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -10,7 +10,7 @@
 #include <cmath>
 
 // Sets default values
-AMySimulation::AMySimulation()
+AGameOscillator::AGameOscillator()
 {
      // Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
     PrimaryActorTick.bCanEverTick = true;
@@ -36,12 +36,7 @@ AMySimulation::AMySimulation()
     SpringVisual->SetupAttachment(Anchor);
     SpringVisual->SetMobility(EComponentMobility::Movable);
     
-    // 4. Делаю номер маятника для наглядности
-    TextRender = CreateDefaultSubobject<UTextRenderComponent>(TEXT("MyTextRender"));
-    
-    TextRender->SetupAttachment(Anchor);
-    
-    // 5. Делаю триггер для активации брызгов воды
+    // 4. Делаю триггер для активации брызгов воды
     WaterTrigger = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WaterTrigger"));
     
     WaterTrigger->SetupAttachment(PayloadMesh);
@@ -49,97 +44,67 @@ AMySimulation::AMySimulation()
 }
 
 // Called when the game starts or when spawned
-void AMySimulation::BeginPlay()
+void AGameOscillator::BeginPlay()
 {
     Super::BeginPlay();
-    
-    TextRender->SetText(FText::FromString(FString::FromInt(Index)));
-    
-    // 1. Замена типов
-    Mass = (double)InMass;
-    Stiffness = (double)InStiffness;
-    X0 = (double)InX0;
-    RestLength = (double)InRestLength;
-    CurrentV_Num = (double)InCurrentV_Num;
-    FixedDeltaTime = (double)InFixedDeltaTime;
-    TimeScale = (double)InTimeScale;
-    
-    // 2. Расчет характеристик
-    Omega = std::sqrt(Stiffness / Mass);
-    Period = 2.0 * PI * (1.0 / Omega);
-    Frequency = 1.0 / Period;
-    NIntegrationStepRecords = FMath::Max(FMath::RoundToInt((1.0 / APS) / FixedDeltaTime), 1);
 
-    // 3. Установка начальных условий
-    CurrentX_Num = X0;
+    // 1. Установка начальных условий
+    CurrentX_Num = InX0;
     ElapsedTime = 0.0;
     
-    // 4. Получение высоты пружинки
+    // 2. Получение высоты пружинки
     FVector Min, Max;
     SpringVisual->GetLocalBounds(Min, Max);
     SpringFullHeight = Max.Z - Min.Z;
     
-    // 5. Получение половины высоты грузика
+    // 3. Получение половины высоты грузика
     PayloadMesh->GetLocalBounds(Min, Max);
     PayloadHalfHeight = ((Max.Z - Min.Z) / 2.0 / 10.0);
 }
 
 // Called every frame
-void AMySimulation::Tick(float DeltaTime)
+void AGameOscillator::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
     if (!bRunSimulation) return;
 
-    double dt = DeltaTime * TimeScale;
+    double dt = DeltaTime * InTimeScale;
     TimeAccumulator += dt;
 
     UMyGameInstance* MyGI = Cast<UMyGameInstance>(GetGameInstance());
     
     // TimeAccumulator накапливает время, которое после "разряжается" с шагом FixedDeltaTime, что позволяет сохранить точность графиков при скачках кадров
-    while (TimeAccumulator >= FixedDeltaTime)
+    while (TimeAccumulator >= InFixedDeltaTime)
     {
-        NIntegrationSteps++;
+        Omega = std::sqrt(InStiffness / InMass);
+        Period = 2.0 * PI * (1.0 / Omega);
+        Frequency = 1.0 / Period;
         
-        double Acceleration = -(Stiffness / Mass) * CurrentX_Num;
-        
-        // --- ЧИСЛЕННОЕ РЕШЕНИЕ (Метод Эйлера-Кромера) ---
-        // a = F/m = -k*x / m
-//        CurrentV_Num += Acceleration * FixedDeltaTime;
-//        CurrentX_Num += CurrentV_Num * FixedDeltaTime;
+        double Acceleration = -(InStiffness / InMass) * CurrentX_Num;
         
         // --- ЧИСЛЕННОЕ РЕШЕНИЕ (Метод Верле) ---
-        double NewX = CurrentX_Num + CurrentV_Num * FixedDeltaTime + 0.5 * Acceleration * FixedDeltaTime * FixedDeltaTime;
-        double NewAcceleration = -(Stiffness / Mass) * NewX;
-        CurrentV_Num += 0.5 * (Acceleration + NewAcceleration) * FixedDeltaTime;
+        double NewX = CurrentX_Num + InCurrentV_Num * InFixedDeltaTime + 0.5 * Acceleration * InFixedDeltaTime * InFixedDeltaTime;
+        double NewAcceleration = -(InStiffness / InMass) * NewX;
+        InCurrentV_Num += 0.5 * (Acceleration + NewAcceleration) * InFixedDeltaTime;
         CurrentX_Num = NewX;
         
         // --- "ИНКРЕМЕНТ" ВРЕМЕНИ ---
-        ElapsedTime += FixedDeltaTime;
+        ElapsedTime += InFixedDeltaTime;
         
         // --- АНАЛИТИЧЕСКОЕ РЕШЕНИЕ ---
-        CurrentX_Ana = X0 * std::cos(Omega * ElapsedTime);
+        CurrentX_Ana = InX0 * std::cos(Omega * ElapsedTime);
         
         // --- ПОГРЕШНОСТЬ ---
         double Diff = CurrentX_Num - CurrentX_Ana;
         TotalSqError += Diff * Diff;
-        NErrorSteps++;
         
-        if (NIntegrationSteps % NIntegrationStepRecords == 0)
-        {
-            // --- ОКОНЧАТЕЛЬНАЯ ПОГРЕШНОСТЬ ---
-            RMSError = std::sqrt((1.0 / NErrorSteps) * TotalSqError);
-            
-            // --- ОТПРАВКА ДАННЫХ В СПИСОК ДЛЯ ВЫВОДА ---
-            MyGI->AddToAllGraphArray(Index - 1, (float)ElapsedTime, (float)CurrentX_Ana, (float)RMSError, (float)CurrentX_Num, (float)CurrentV_Num, (float)Frequency, (float)Period);
-        }
-
         // --- "РАЗРЯДКА" АККУМУЛЯТРА ---
-        TimeAccumulator -= FixedDeltaTime;
+        TimeAccumulator -= InFixedDeltaTime;
     }
 
     // --- АНИМАЦИЯ ---
     // Сдвигаем меш груза. -RestLength — это точка равновесия
-    float VisualZ = -RestLength + CurrentX_Num;
+    float VisualZ = -InRestLength + CurrentX_Num;
     PayloadMesh->SetRelativeLocation(FVector(0.0f, 0.0f, VisualZ));
 
     // Растягиваем пружину (Scale Z)

@@ -4,24 +4,24 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "MySimulation.generated.h"
+#include "GameOscillator.generated.h"
 
 UCLASS()
-class MYPROJECT_API AMySimulation : public AActor
+class MYPROJECT_API AGameOscillator : public AActor
 {
-	GENERATED_BODY()
-	
-public:	
-	// Sets default values for this actor's properties
-	AMySimulation();
+    GENERATED_BODY()
+    
+public:
+    // Sets default values for this actor's properties
+    AGameOscillator();
 
 protected:
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
+    // Called when the game starts or when spawned
+    virtual void BeginPlay() override;
 
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+public:
+    // Called every frame
+    virtual void Tick(float DeltaTime) override;
 
 protected:
     // Анчор-рут
@@ -29,7 +29,7 @@ protected:
     USceneComponent* Anchor;
     
     // Анчор-меш
-    UPROPERTY(VisibleAnywhere, Category = "Oscillator|Setup")
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Oscillator|Setup")
     UStaticMeshComponent* AnchorMesh;
 
     // Груз (подвижная часть)
@@ -48,7 +48,7 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
     class UTextRenderComponent* TextRender;
 
-public:    
+public:
     // --- ВХОДНЫЕ ДАННЫЕ (9 параметров) ---
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Oscillator|Input")
     float InMass = 10.0;                // 1. m (кг)
@@ -76,21 +76,6 @@ public:
     
     UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = "true"), Category = "Oscillator|Input")
     bool bRunSimulation = true;       // 9. Флаг старта
-    
-    // --- ПОДГОТОВКА К ЗАМЕНЕ ТИПОВ ВХОДНЫХ ДАННЫХ ---
-    double Mass;
-
-    double Stiffness;
-
-    double X0;
-
-    double RestLength;
-
-    double CurrentV_Num;
-
-    double FixedDeltaTime;
-    
-    double TimeScale;
 
     // --- ВЫХОДНЫЕ ДАННЫЕ (Характеристики) ---
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Oscillator|Output")
@@ -116,19 +101,12 @@ public:
     
     double PayloadHalfHeight;
     
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Oscillator|Output")
     double Omega;
     
     double TimeAccumulator = 0.0;
     
     double TotalSqError = 0;
-    
-    int NErrorSteps = 0;
-    
-    int NIntegrationSteps = 0;
-    
-    int NIntegrationStepRecords;
-    
-    int APS = 15;
     
     
     

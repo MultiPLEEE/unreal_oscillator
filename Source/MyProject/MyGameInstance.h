@@ -101,6 +101,15 @@ public:
     UPROPERTY(BlueprintReadWrite, Category = "Oscillator|Math")
     TArray<FGraphWrapper> AllGraphsArray;
     
+    UPROPERTY(BlueprintReadWrite, Category = "Oscillator|Game")
+    TObjectPtr<class AGameOscillator> TargetOscillator;
+    
+    UPROPERTY(BlueprintReadWrite, Category = "Oscillator|Game")
+    float StartGameTime;
+    
+    UPROPERTY(BlueprintReadWrite, Category = "Oscillator|Game")
+    float WaterLevel;
+    
     
     
     UFUNCTION(BlueprintCallable, Category = "Oscillator|Math")
